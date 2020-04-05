@@ -15,9 +15,14 @@ was executed before "C".
 func DataRace() {
 	data := 0
 	go func() {
-		data++ // A
+		data++ // A is crticaal section
 	}()
-	if data == 0 { // B
-		fmt.Printf("the value is %v.\n", data) // C
+	if data == 0 { // B is crticaal section
+		fmt.Printf("the value is %v.\n", data) // C is crticaal section
 	}
 }
+
+/*
+Critical Section: section of your program that needs exclusive access to a
+shared resource
+*/
