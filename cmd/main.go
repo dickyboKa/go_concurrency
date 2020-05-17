@@ -1,9 +1,15 @@
 package main
 
-import (
-	i "github.com/dickyboKa/go_concurrency/introduction"
-)
+import "fmt"
 
 func main() {
-	i.DataRace()
+	//i.DataRace()
+
+	stringStream := make(chan string)
+	go func() {
+		stringStream <- "Hello channels!"
+	}()
+
+	fmt.Println(<-stringStream)
+
 }
