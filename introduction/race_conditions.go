@@ -15,10 +15,10 @@ was executed before "C".
 func DataRace() {
 	data := 0
 	go func() {
-		data++ // A is crticaal section
+		data++ // A is critical section
 	}()
-	if data == 0 { // B is crticaal section
-		fmt.Printf("the value is %v.\n", data) // C is crticaal section
+	if data == 0 { // B is critical section
+		fmt.Printf("the value is %v.\n", data) // C is critical section
 	}
 }
 
