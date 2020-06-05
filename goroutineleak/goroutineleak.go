@@ -42,7 +42,7 @@ func AvoidGouRoutineLeakReadChannel() {
 		fmt.Println("Canceling doWork goroutine")
 		close(done)
 	}()
-	 // wait for it to be done
+	// wait for it to be done
 	<-terminated
 	fmt.Println("Done.")
 }
@@ -91,7 +91,7 @@ func newRandStream() <-chan int {
 /*
 If a goroutine is responsible for creating a goroutine, it is also responsible
 for ensuring it can stop the goroutine
- */
+*/
 func AvoidGoRoutineLeakWriteValue() {
 	done := make(chan interface{})
 	randStream := newRandStreamWithDone(done)
@@ -110,7 +110,7 @@ func newRandStreamWithDone(done <-chan interface{}) <-chan int {
 		defer fmt.Println("newRandStream closure exited.")
 		defer close(randStream)
 		for {
-			select{
+			select {
 			case randStream <- rand.Int():
 			case <-done:
 				return

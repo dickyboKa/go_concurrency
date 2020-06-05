@@ -4,6 +4,7 @@ import (
 	"github.com/dickyboKa/go_concurrency/confinemen"
 	"github.com/dickyboKa/go_concurrency/goroutineleak"
 	"github.com/dickyboKa/go_concurrency/introduction"
+	"github.com/dickyboKa/go_concurrency/theorchannel"
 )
 
 func main() {
@@ -16,4 +17,5 @@ func main() {
 	goroutineleak.GouRoutineLeakReadChannel()
 	goroutineleak.AvoidGouRoutineLeakReadChannel()
 	goroutineleak.GouRoutineLeakWriteChannel()
+	theorchannel.TheORChannelExperiment()
 }
