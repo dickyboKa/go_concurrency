@@ -1,6 +1,8 @@
 package pipeline
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func generator(done <-chan interface{}, integers ...int) <-chan int {
 	intStream := make(chan int)
@@ -57,4 +59,44 @@ func ExperimentWithPipeline() {
 	for p := range pipeline {
 		fmt.Println(p)
 	}
+}
+
+func repeat(done <-chan interface{}, values ...interface{}) <-chan interface{} {
+	valueStream := make(chan interface{})
+	go func() {
+		defer close(valueStream)
+		for {
+			for _, v := range values {
+				select {
+				case <-done:
+					return
+				case valueStream <- v:
+				}
+			}
+		}
+	}()
+	return valueStream
+}
+
+func take(done <-chan interface{}, valueStream <-chan interface{}, limit int) <-chan interface{} {
+	takeStream := make(chan interface{})
+	go func() {
+		defer close(takeStream)
+		for i := 0; i < limit; i++ {
+			select {
+			case <-done:
+				return
+			case takeStream <- <-valueStream:
+			}
+		}
+	}()
+	return takeStream
+}
+func ExperimentWithPipelineGenerator() {
+	done := make(chan interface{})
+	defer close(done)
+	for num := range take(done, repeat(done, 1), 10) {
+		fmt.Printf("%v ", num)
+	}
+	fmt.Println()
 }
