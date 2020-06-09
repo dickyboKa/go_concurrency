@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -40,25 +41,24 @@ func ExperimentWithPipeline() {
 	done := make(chan interface{})
 	defer close(done)
 
-	intStream := toIntStream(done, 1, 2, 3, 4)
+	intStream := generateIntStream(done, 1, 2, 3, 4)
 	pipeline := multiply(done, add(done, multiply(done, intStream, 2), 1), 2)
 	for p := range pipeline {
 		fmt.Println(p)
 	}
 }
 
-func primeFinder(done <-chan interface{}, intStream <-chan interface{}) <-chan int {
+func primeFinder(done <-chan interface{}, intStream <-chan int) <-chan int {
 	addStream := make(chan int)
 	go func() {
 		defer close(addStream)
 		for i := range intStream {
 			notPrimeNumber := false
-			valInt := i.(int)
-			if valInt == 0 || valInt == 1 {
+			if i == 0 || i == 1 {
 				continue
 			}
-			for v := valInt - 1; v > 1; v-- {
-				if valInt%v == 0 {
+			for v := i - 1; v > 1; v-- {
+				if i%v == 0 {
 					notPrimeNumber = true
 				}
 			}
@@ -69,7 +69,7 @@ func primeFinder(done <-chan interface{}, intStream <-chan interface{}) <-chan i
 			select {
 			case <-done:
 				return
-			case addStream <- valInt:
+			case addStream <- i:
 			}
 		}
 	}()
@@ -81,7 +81,18 @@ func InefficientPrimeNumber() {
 	defer close(done)
 
 	start := time.Now()
-	for num := range take(done, primeFinder(done, repeatFn(done, func() interface{} { return rand.Intn(10) })), 10) {
+
+	randFn := func() interface{} { return rand.Intn(5 * 1e7) }
+	randIntStream := toInt(done, repeatFn(done, randFn))
+
+	// here we fan-out spawn multiple go routine
+	numFinders := runtime.NumCPU()
+	finders := make([]<-chan int, numFinders)
+	for i := 0; i < numFinders; i++ {
+		finders[i] = primeFinder(done, randIntStream)
+	}
+
+	for num := range take(done, fanIn(done, finders...), 10) {
 		fmt.Printf("%d\n", num)
 	}
 	fmt.Printf("Search took: %v\n", time.Since(start))
