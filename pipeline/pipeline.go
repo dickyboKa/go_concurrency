@@ -2,23 +2,9 @@ package pipeline
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 )
-
-func generator(done <-chan interface{}, integers ...int) <-chan int {
-	intStream := make(chan int)
-	go func() {
-		defer close(intStream)
-		for _, i := range integers {
-			select {
-			case <-done:
-				return
-			case intStream <- i:
-
-			}
-		}
-	}()
-	return intStream
-}
 
 func multiply(done <-chan interface{}, intStream <-chan int, multiply int) <-chan int {
 	multipliedStream := make(chan int)
@@ -54,49 +40,49 @@ func ExperimentWithPipeline() {
 	done := make(chan interface{})
 	defer close(done)
 
-	intStream := generator(done, 1, 2, 3, 4)
+	intStream := toIntStream(done, 1, 2, 3, 4)
 	pipeline := multiply(done, add(done, multiply(done, intStream, 2), 1), 2)
 	for p := range pipeline {
 		fmt.Println(p)
 	}
 }
 
-func repeat(done <-chan interface{}, values ...interface{}) <-chan interface{} {
-	valueStream := make(chan interface{})
+func primeFinder(done <-chan interface{}, intStream <-chan interface{}) <-chan int {
+	addStream := make(chan int)
 	go func() {
-		defer close(valueStream)
-		for {
-			for _, v := range values {
-				select {
-				case <-done:
-					return
-				case valueStream <- v:
+		defer close(addStream)
+		for i := range intStream {
+			notPrimeNumber := false
+			valInt := i.(int)
+			if valInt == 0 || valInt == 1 {
+				continue
+			}
+			for v := valInt - 1; v > 1; v-- {
+				if valInt%v == 0 {
+					notPrimeNumber = true
 				}
 			}
-		}
-	}()
-	return valueStream
-}
+			if notPrimeNumber {
+				continue
+			}
 
-func take(done <-chan interface{}, valueStream <-chan interface{}, limit int) <-chan interface{} {
-	takeStream := make(chan interface{})
-	go func() {
-		defer close(takeStream)
-		for i := 0; i < limit; i++ {
 			select {
 			case <-done:
 				return
-			case takeStream <- <-valueStream:
+			case addStream <- valInt:
 			}
 		}
 	}()
-	return takeStream
+	return addStream
 }
-func ExperimentWithPipelineGenerator() {
+
+func InefficientPrimeNumber() {
 	done := make(chan interface{})
 	defer close(done)
-	for num := range take(done, repeat(done, 1), 10) {
-		fmt.Printf("%v ", num)
+
+	start := time.Now()
+	for num := range take(done, primeFinder(done, repeatFn(done, func() interface{} { return rand.Intn(10) })), 10) {
+		fmt.Printf("%d\n", num)
 	}
-	fmt.Println()
+	fmt.Printf("Search took: %v\n", time.Since(start))
 }
