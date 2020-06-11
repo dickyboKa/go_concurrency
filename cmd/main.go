@@ -1,16 +1,9 @@
 package main
 
-import (
-	"github.com/dickyboKa/go_concurrency/confinemen"
-	"github.com/dickyboKa/go_concurrency/errorhandling"
-	"github.com/dickyboKa/go_concurrency/goroutineleak"
-	"github.com/dickyboKa/go_concurrency/introduction"
-	"github.com/dickyboKa/go_concurrency/pipeline"
-	"github.com/dickyboKa/go_concurrency/theorchannel"
-)
+import "github.com/dickyboKa/go_concurrency/ctxpackage"
 
 func main() {
-	introduction.DataRace()
+	/*introduction.DataRace()
 	introduction.PlayAroundWithChannel()
 	introduction.UnderstandSelectStatement()
 	confinemen.AdHocConfinemen()
@@ -22,6 +15,6 @@ func main() {
 	theorchannel.TheORChannelExperiment()
 	errorhandling.ExperimentWithErrorHandling()
 	pipeline.ExperimentWithPipeline()
-	pipeline.InefficientPrimeNumber()
-
+	pipeline.InefficientPrimeNumber()*/
+	ctxpackage.ExperimentWithCtx()
 }
