@@ -1,6 +1,7 @@
 package ctxpackage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -8,32 +9,32 @@ import (
 
 func ExperimentWithCtx() {
 	var wg sync.WaitGroup
-	done := make(chan interface{})
-	defer close(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := printGreeting(done); err != nil {
-			fmt.Printf("%v", err)
-			return
+		if err := printGreeting(ctx); err != nil {
+			fmt.Printf("cannot print greeting: %v\n", err)
+			cancel()
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := printFarewell(done); err != nil {
-			fmt.Printf("%v", err)
-			return
+		if err := printFarewell(ctx); err != nil {
+			fmt.Printf("cannot print farewell: %v\n", err)
+			cancel()
 		}
 	}()
 
 	wg.Wait()
 }
 
-func printGreeting(done <-chan interface{}) error {
-	greeting, err := genGreeting(done)
+func printGreeting(ctx context.Context) error {
+	greeting, err := genGreeting(ctx)
 	if err != nil {
 		return err
 	}
@@ -41,8 +42,8 @@ func printGreeting(done <-chan interface{}) error {
 	return nil
 }
 
-func printFarewell(done <-chan interface{}) error {
-	farewell, err := genFarewell(done)
+func printFarewell(ctx context.Context) error {
+	farewell, err := genFarewell(ctx)
 	if err != nil {
 		return err
 	}
@@ -50,8 +51,11 @@ func printFarewell(done <-chan interface{}) error {
 	return nil
 }
 
-func genGreeting(done <-chan interface{}) (string, error) {
-	switch locale, err := locale(done); {
+func genGreeting(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	switch locale, err := locale(ctx); {
 	case err != nil:
 		return "", err
 	case locale == "EN/US":
@@ -60,8 +64,8 @@ func genGreeting(done <-chan interface{}) (string, error) {
 	return "", fmt.Errorf("unspported locale")
 }
 
-func genFarewell(done <-chan interface{}) (string, error) {
-	switch locale, err := locale(done); {
+func genFarewell(ctx context.Context) (string, error) {
+	switch locale, err := locale(ctx); {
 	case err != nil:
 		return "", err
 	case locale == "EN/US":
@@ -70,10 +74,15 @@ func genFarewell(done <-chan interface{}) (string, error) {
 	return "", fmt.Errorf("unspported locale")
 }
 
-func locale(done <-chan interface{}) (string, error) {
+func locale(ctx context.Context) (string, error) {
+	if deadline, ok := ctx.Deadline(); ok {
+		if deadline.Sub(time.Now().Add(1*time.Minute)) <= 0 {
+			return "", context.DeadlineExceeded
+		}
+	}
 	select {
-	case <-done:
-		return "", fmt.Errorf("canceled")
+	case <-ctx.Done():
+		return "", ctx.Err()
 	case <-time.After(1 * time.Minute):
 	}
 	return "EN/US", nil
